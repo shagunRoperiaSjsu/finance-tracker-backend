@@ -9,12 +9,20 @@ const reportRoutes = require("./routes/reportRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const errorHandler = require("./utils/errorHandler");
 const arimaRoutes = require("./routes/arimaRoutes");
+const cors = require("cors");
 
 dotenv.config();
 const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// Enable CORS for all origins and all methods
+app.use(cors({
+  origin: '*',  // Allow requests from any origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],  // Allowed HTTP methods (you can add others as needed)
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],  // Allowed headers
+}));
 
 // Middleware
 app.use(express.json());
