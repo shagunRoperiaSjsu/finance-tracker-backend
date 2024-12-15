@@ -1,35 +1,49 @@
-const { spawn } = require("child_process");
+const https = require('https');
 
-function getArimaForecast(steps = 12) {
+const getArimaForecast = async (inputData) => {
+  const requestData = { steps: inputData };
   return new Promise((resolve, reject) => {
-    const pythonProcess = spawn("python3", [
-      "./services/arime_predictor.py",
-      steps.toString(),
-    ]);
+    const options = {
+      hostname: 'nzzd4gs86h.us-west-2.awsapprunner.com',  // Your Flask API URL
+      port: 443,
+      path: '/predict',  // The Flask API endpoint
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(JSON.stringify(requestData)),
+      },
+    };
 
-    let result = "";
+    const req = https.request(options, (res) => {
+      // console.log(res);
+      let data = '';
 
-    pythonProcess.stdout.on("data", (data) => {
-      result += data.toString();
-    });
+      // Collect data chunks
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
 
-    pythonProcess.stderr.on("data", (data) => {
-      console.error(`Error: ${data}`);
-    });
-
-    pythonProcess.on("close", (code) => {
-      if (code !== 0) {
-        reject(`Process exited with code ${code}`);
-      } else {
+      // Resolve promise on end
+      res.on('end', () => {
         try {
-          const predictions = JSON.parse(result);
-          resolve(predictions);
+          // Parse the JSON response and return the forecast data
+          const forecast = JSON.parse(data);
+          // console.log(forecast);
+          resolve(forecast); // You may further process the forecast here if needed
         } catch (error) {
-          reject(error);
+          reject('Error parsing response: ' + error.message);
         }
-      }
+      });
     });
+
+    req.on('error', (error) => {
+      reject('Error with HTTP request: ' + error.message);
+    });
+
+    // Write input data to the request body
+    req.write(JSON.stringify(requestData));
+    req.end(); // End the request
   });
-}
+};
 
 module.exports = { getArimaForecast };

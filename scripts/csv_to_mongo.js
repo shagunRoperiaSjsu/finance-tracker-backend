@@ -7,29 +7,33 @@ const csvFilePath = "./transactions.csv";
 
 const users = [
   {
-    name: "Shagun Bhadu",
-    email: "shagun.bhadu@sjsu.edu",
-    password: "123456",
-  },
-  {
     name: "Varun Patil",
     email: "varun.patil@sjsu.edu",
     password: "123456",
   },
+  {
+    name: "Shagun Roperia",
+    email: "shagun.roperia@sjsu.edu",
+    password: "123456",
+  },
 ];
 
-const importTransactions = async (usersData) => {
+const getToken = async (email, password) => {
+  const response = await axios.post(`${apiUrl}/auth/login`, {
+    email,
+    password,
+  });
+  return response.data.token;
+};
+
+const importTransactions = async (user) => {
+  const token = await getToken(user.email, user.password);
   const transactions = [];
 
   // Read the CSV file
   fs.createReadStream(csvFilePath)
     .pipe(csv())
     .on("data", (row) => {
-      // Map CSV data to the expected format
-      // randomly select a user from usersData
-      const selectedUser =
-        usersData[Math.floor(Math.random() * usersData.length)];
-      console.log(selectedUser);
       transactions.push({
         date: row.date,
         mode: row.mode,
@@ -38,8 +42,7 @@ const importTransactions = async (usersData) => {
         note: row.note,
         amount: parseFloat(row.amount), // Ensure Amount is a number
         type: row.type,
-        currency: row.currency
-        // userId: "675d5327bb393373e628eae3",
+        currency: row.currency,
       });
     })
     .on("end", async () => {
@@ -48,7 +51,12 @@ const importTransactions = async (usersData) => {
         try {
           const response = await axios.post(
             `${apiUrl}/transactions`,
-            transaction
+            transaction,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
           );
           console.log("Transaction imported:", response?.data);
         } catch (error) {
@@ -66,16 +74,15 @@ const importUsers = async () => {
       usersData.push(response?.data);
       console.log("User imported:", response?.data);
     } catch (error) {
-      console.error("Error importing user:", error.response.data);
+      console.error("Error importing user:", error.response?.data);
     }
   }
   return usersData;
 };
 
 const main = async () => {
-  const usersData = await importUsers();
-  console.log(usersData);
-  await importTransactions(usersData);
+  await importUsers();
+  await importTransactions(users[0]);
 };
 
 main();
